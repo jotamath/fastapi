@@ -1,5 +1,6 @@
 from uuid import uuid4
 from fastapi import APIRouter, Body, status
+from pydantic import UUID4
 from workout_api.categories.schemas import CategoriaOut, CategoriaIn
 from workout_api.categories.models import CategoriaModel
 from workout_api.contrib.dependencies import DatabaseDependency
@@ -39,4 +40,19 @@ async def post(
 )
 async def query(db_session: DatabaseDependency) -> list[CategoriaOut]:
     categorias: list[CategoriaOut] = (await db_session.execute(select(CategoriaModel))).scalars().all()
-    breakpoint()
+
+    return categorias
+
+@router.get(
+    '/{id}',
+    summary='Consultar uma categoria pelo id',
+    status_code=status.HTTP_200_OK,
+    response_model=list[CategoriaOut],
+)
+async def query(id: UUID4, db_session: DatabaseDependency) -> list[CategoriaOut]:
+    categoria: CategoriaOut = (await db_session.execute(select(CategoriaModel).filter_by(id=id))
+                               ).scalars().first()
+    if not categoria:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Categoria não encontrada no id: {id}')
+
+    return categoria
